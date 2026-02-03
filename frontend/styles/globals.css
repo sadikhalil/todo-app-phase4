@@ -1,0 +1,202 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-color: 255, 255, 255; /* #FFFFFF - white background */
+  --task-card-color: 255, 255, 255; /* #FFFFFF - white cards */
+  --accent-primary: 255, 127, 80; /* #FF7F50 - orange */
+  --accent-secondary: 255, 177, 153; /* #FFB199 - peach */
+  --accent-dark: 27, 31, 59; /* #1B1F3B - navy blue */
+  --text-main: 27, 31, 59; /* #1B1F3B - navy blue for text */
+  --text-on-dark: 255, 255, 255; /* #FFFFFF - white text on dark */
+}
+
+body {
+  color: rgb(var(--text-main));
+  background-color: rgb(var(--background-color));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(var(--accent-secondary), 0.2); /* Peach with low opacity */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--accent-primary), 0.7); /* Orange */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--accent-primary), 0.9); /* Darker orange on hover */
+}
+
+/* Animations for task items */
+.task-item {
+  animation: slideIn 0.3s ease-out;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(var(--accent-primary), 0.15);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes scalePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 0 rgba(var(--accent-dark), 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(var(--accent-dark), 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(var(--accent-dark), 0.3);
+  }
+}
+
+.bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+.scale-pulse {
+  animation: scalePulse 0.3s ease-in-out;
+}
+
+.glow {
+  animation: glow 2s infinite;
+}
+
+/* Confetti effect for completed tasks */
+.confetti {
+  position: relative;
+  overflow: hidden;
+}
+
+.confetti::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    rgba(var(--accent-primary), 0.8) 0deg,      /* Orange */
+    rgba(var(--accent-secondary), 0.8) 60deg,   /* Peach */
+    rgba(var(--background-color), 0.8) 120deg,  /* White */
+    rgba(var(--accent-primary), 0.8) 180deg,    /* Orange */
+    rgba(var(--accent-secondary), 0.8) 240deg,  /* Peach */
+    rgba(var(--background-color), 0.8) 300deg,  /* White */
+    rgba(var(--accent-primary), 0.8) 360deg    /* Orange */
+  );
+  animation: rotate 2s linear infinite;
+  opacity: 0.3;
+  z-index: -1;
+  border-radius: 50%;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Priority badges */
+.priority-low {
+  background-color: rgba(var(--accent-dark), 0.2); /* Navy blue with low opacity */
+  border: 2px solid rgba(var(--accent-dark), 0.5); /* Navy blue with medium opacity */
+  color: rgb(var(--accent-dark)); /* Navy blue text */
+}
+
+.priority-medium {
+  background-color: rgba(var(--accent-secondary), 0.2); /* Peach with low opacity */
+  border: 2px solid rgba(var(--accent-secondary), 0.5); /* Peach with medium opacity */
+  color: rgb(var(--accent-secondary)); /* Peach text */
+}
+
+.priority-high {
+  background-color: rgba(var(--accent-primary), 0.2); /* Orange with low opacity */
+  border: 2px solid rgba(var(--accent-primary), 0.5); /* Orange with medium opacity */
+  color: rgb(var(--accent-primary)); /* Orange text */
+}
+
+/* Button animations */
+.btn-primary {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background-color: rgb(var(--accent-primary)); /* Orange */
+  color: rgb(var(--text-on-dark)); /* White text */
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(var(--accent-primary), 0.3); /* Orange shadow */
+  background-color: rgb(var(--accent-secondary)); /* Peach on hover */
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}

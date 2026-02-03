@@ -1,0 +1,100 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+/frontend/node_modules/
+tests/
+.specify/
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Secrets (never commit)
+secrets/
+*.pem
+*.key
+credentials.json
+.env
+frontend/.env
+backend/.env
+
+# Build directories and caches
+frontend/.next/
+backend/venv/
+frontend/node_modules/
+
+# Backend development artifacts
+backend/agents/
+backend/api/
+backend/mcp/
+backend/models/
+backend/requirements_new.txt
+
+# Database files
+*.db
+*.sqlite3
