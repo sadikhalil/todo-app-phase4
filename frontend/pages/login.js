@@ -26,7 +26,7 @@ const LoginPage = () => {
   };
 
   return (
-    <Layout title="Sign In - My Tasks">
+    <Layout title="Sign In - Modern Todo App">
       <div className="max-w-md mx-auto bg-white dark:bg-peach text-navy-blue dark:text-navy-blue rounded-xl shadow-sm p-8">
         <h1 className="text-2xl font-bold text-center text-navy-blue dark:text-navy-blue mb-6">Welcome Back</h1>
 

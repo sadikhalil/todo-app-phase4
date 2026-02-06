@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.11
 """
-Script to start the main Todo application server
+Script to start the consolidated Todo application server (main + MCP functionality)
 """
 
 import subprocess
@@ -8,18 +8,19 @@ import sys
 import os
 
 def main():
-    print("Starting Main Todo Application Server...")
+    print("Starting Consolidated Todo Application Server...")
     print("Server will be available at http://localhost:8000")
+    print("Includes both main API and MCP endpoints at /mcp/*")
 
     # Change to backend directory
     backend_dir = os.path.join(os.path.dirname(__file__), "backend")
     os.chdir(backend_dir)
 
-    # Start the main server
+    # Start the main server (now includes MCP functionality)
     cmd = [
-        sys.executable,
+        "python3.11",
         "-m", "uvicorn",
-        "src.api.main:app",
+        "main:app",
         "--host", "0.0.0.0",
         "--port", "8000",
         "--reload"
@@ -28,10 +29,10 @@ def main():
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error starting main server: {e}")
+        print(f"Error starting consolidated server: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\nMain server stopped.")
+        print("\nConsolidated server stopped.")
         sys.exit(0)
 
 if __name__ == "__main__":

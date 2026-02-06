@@ -18,6 +18,7 @@ interface TodoContextType {
   clearCompleted: () => void;
   setFilter: (filter: 'all' | 'active' | 'completed') => void;
   reorderTodos: (activeId: string, overId: string) => void;
+  refreshTodos: () => Promise<void>;
 }
 
 const TodoContext = createContext<TodoContextType | undefined>(undefined);
@@ -115,9 +116,10 @@ const todoReducer = (state: TodoState, action: any): TodoState => {
 };
 
 export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize from localStorage if available (only in browser)
-  const initialState: TodoState = (() => {
-    if (typeof window !== 'undefined') {
+  // Initialize with default empty state for SSR, hydrate on client
+
+  const getInitialState = (): TodoState => {
+    if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const savedState = localStorage.getItem('todoAppState');
         if (savedState) {
@@ -131,7 +133,9 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       todos: [],
       filter: 'all',
     };
-  })();
+  };
+
+  const initialState: TodoState = getInitialState();
 
   const [state, dispatch] = useReducer(todoReducer, initialState);
 
@@ -145,15 +149,17 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const data = await apiClient.getTasks();
           const fetchedTodos = data.tasks || [];
 
-          // Convert dates from string to Date objects
+          // Convert dates from string to Date objects and map backend fields to frontend fields
           const todosWithDates = fetchedTodos.map((todo: any) => ({
-            ...todo,
+            id: todo.id.toString(), // Ensure ID is a string
+            text: todo.title,
+            description: todo.description,
+            status: todo.completed ? 'complete' : 'incomplete',
+            priority: todo.priority || 'medium',
+            dueDate: todo.due_date ? new Date(todo.due_date) : undefined,
+            reminderDate: todo.reminder_date ? new Date(todo.reminder_date) : undefined,
             createdAt: new Date(todo.created_at),
             updatedAt: new Date(todo.updated_at),
-            dueDate: todo.due_date ? new Date(todo.due_date) : undefined,
-            description: todo.description,
-            priority: todo.priority,
-            reminderDate: todo.reminder_date ? new Date(todo.reminder_date) : undefined,
           }));
 
           dispatch({ type: 'LOAD_TODOS', payload: { todos: todosWithDates } });
@@ -319,6 +325,64 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Task reordered', 'info');
   };
 
+  const refreshTodos = async () => {
+    // Reload todos from backend API
+    try {
+      console.log('Refreshing todos...'); // Debug log
+
+      // Re-fetch the token in case it has been updated
+      let tokenFromStorage = localStorage.getItem('token');
+      if (!tokenFromStorage) {
+        tokenFromStorage = localStorage.getItem('access_token');
+      }
+
+      console.log('Token found:', !!tokenFromStorage); // Debug log
+
+      if (!tokenFromStorage) {
+        console.warn('No token available, cannot refresh todos');
+        return;
+      }
+
+      const data = await apiClient.getTasks();
+      console.log('Fetched data from API:', data); // Debug log
+
+      // The backend returns an array directly, not wrapped in a 'tasks' property
+      const fetchedTodos = Array.isArray(data) ? data : (data.tasks || []);
+      console.log('Raw fetched todos array:', fetchedTodos); // Debug log
+      if (fetchedTodos.length > 0) {
+        console.log('Sample todo object:', fetchedTodos[0]); // Debug log
+      }
+
+      // Convert dates from string to Date objects and map backend fields to frontend fields
+      const todosWithDates = fetchedTodos.map((todo: any) => {
+        try {
+          return {
+            id: todo.id?.toString() || '', // Ensure ID is a string
+            text: todo.title || '',
+            description: todo.description || '',
+            status: todo.completed ? 'complete' : 'incomplete',
+            priority: todo.priority || 'medium',
+            dueDate: todo.due_date ? new Date(todo.due_date) : undefined,
+            reminderDate: todo.reminder_date ? new Date(todo.reminder_date) : undefined,
+            createdAt: new Date(todo.created_at),
+            updatedAt: new Date(todo.updated_at),
+          };
+        } catch (mappingError) {
+          console.error('Error mapping todo:', mappingError, 'Todo data:', todo);
+          return null; // Return null for failed mappings
+        }
+      }).filter(Boolean); // Filter out any null values
+
+      console.log('Converted todos:', todosWithDates); // Debug log
+      dispatch({ type: 'LOAD_TODOS', payload: { todos: todosWithDates } });
+
+      console.log(`Refreshed ${todosWithDates.length} todos from backend`); // Debug log
+    } catch (e) {
+      console.error('Failed to refresh todos from backend', e);
+      showToast('Failed to refresh tasks', 'error');
+    }
+  };
+
   const value = {
     state,
     addTodo,
@@ -328,6 +392,7 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearCompleted,
     setFilter,
     reorderTodos,
+    refreshTodos,
   };
 
   // Effect to save state to localStorage whenever it changes (only in browser)

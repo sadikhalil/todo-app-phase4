@@ -1,6 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.11
 """
-Script to start the MCP server for Todo Chat
+Note: MCP functionality has been integrated into the main server
+This script is kept for reference but the MCP server is no longer needed
+Use run_main_server.py instead which includes all MCP functionality
 """
 
 import subprocess
@@ -8,31 +10,9 @@ import sys
 import os
 
 def main():
-    print("Starting MCP Server for Todo Chat...")
-    print("Server will be available at http://localhost:8001")
-
-    # Change to backend directory
-    backend_dir = os.path.join(os.path.dirname(__file__), "backend")
-    os.chdir(backend_dir)
-
-    # Start the MCP server
-    cmd = [
-        sys.executable,
-        "-m", "uvicorn",
-        "mcp.server:app",
-        "--host", "0.0.0.0",
-        "--port", "8001",
-        "--reload"
-    ]
-
-    try:
-        subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error starting MCP server: {e}")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        print("\nMCP server stopped.")
-        sys.exit(0)
+    print("MCP functionality has been integrated into the main server!")
+    print("Please use run_main_server.py instead - it includes all MCP endpoints")
+    print("MCP endpoints are now available at http://localhost:8000/mcp/*")
 
 if __name__ == "__main__":
     main()

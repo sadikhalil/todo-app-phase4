@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import { useTodo } from '../contexts/TodoContext';
-import Layout from '../components/Layout';
 import { format } from 'date-fns';
+import FloatingChatButton from '../components/FloatingChatButton';
+import TodoInput from '../components/TodoInput';
+import TodoList from '../components/TodoList';
+import TodoFilters from '../components/TodoFilters';
+import SortableTodoList from '../components/SortableTodoList';
+import ProgressBar from '../components/ProgressBar';
 
 const DashboardPage = () => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all'); // all, incomplete, complete
   const [sortBy, setSortBy] = useState('created_at'); // created_at, updated_at, title, priority
   const [sortOrder, setSortOrder] = useState('desc'); // asc, desc
@@ -28,41 +32,6 @@ const DashboardPage = () => {
     return true; // 'all'
   });
 
-  // Sort tasks
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    let aValue, bValue;
-
-    switch (sortBy) {
-      case 'title':
-        aValue = a.text.toLowerCase();
-        bValue = b.text.toLowerCase();
-        break;
-      case 'priority':
-        // High > Medium > Low
-        const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
-        return sortOrder === 'desc' ? priorityOrder[b.priority] - priorityOrder[a.priority] : priorityOrder[a.priority] - priorityOrder[b.priority];
-      case 'created_at':
-        aValue = new Date(a.createdAt).getTime();
-        bValue = new Date(b.createdAt).getTime();
-        break;
-      case 'updated_at':
-        aValue = new Date(a.updatedAt).getTime();
-        bValue = new Date(b.updatedAt).getTime();
-        break;
-      default:
-        aValue = new Date(a.createdAt).getTime();
-        bValue = new Date(b.createdAt).getTime();
-    }
-
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortOrder === 'desc' ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
-    }
-    return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
-  });
-
-  // Apply pagination
-  const paginatedTasks = sortedTasks.slice(currentPage * limit, (currentPage + 1) * limit);
-
   // Calculate stats
   const stats = {
     total: tasks.length,
@@ -72,41 +41,6 @@ const DashboardPage = () => {
       high: tasks.filter(t => t.priority === 'high').length,
       medium: tasks.filter(t => t.priority === 'medium').length,
       low: tasks.filter(t => t.priority === 'low').length
-    }
-  };
-
-  const createTask = async (taskData) => {
-    // Use the context function to add the task
-    addTodo(taskData.title, taskData.description, undefined, undefined, taskData.priority);
-
-    // Reset form and hide it
-    setShowCreateForm(false);
-  };
-
-  const updateTask = async (taskId, taskData) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    // Use the context function to update the task
-    updateTodo(
-      taskId,
-      taskData.title || task.text,
-      taskData.description || task.description,
-      task.dueDate,
-      task.reminderDate,
-      taskData.priority || task.priority
-    );
-  };
-
-  const toggleTaskCompletion = async (taskId) => {
-    // Use the context function to toggle the task
-    toggleTodo(taskId);
-  };
-
-  const deleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task? This action cannot be undone!')) {
-      // Use the context function to delete the task
-      deleteTodo(taskId);
     }
   };
 
@@ -138,433 +72,238 @@ const DashboardPage = () => {
     }
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
-    <Layout title="Todo Dashboard">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Todo Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/chat"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              AI Chat
-            </Link>
-            <span className="text-gray-700">Welcome, {user?.email}</span>
-            <button
-              onClick={handleLogout}
-              className="ml-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Logout
-            </button>
+    <div className="min-h-screen bg-white dark:bg-navy-blue text-navy-blue dark:text-white flex">
+      {/* Mobile menu button */}
+      <button
+        onClick={toggleSidebar}
+        className="fixed top-4 left-4 z-50 p-2 rounded-md text-white bg-navy-blue lg:hidden"
+        aria-label="Toggle menu"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          onClick={toggleSidebar}
+        ></div>
+      )}
+
+      {/* Sidebar */}
+      <aside
+        id="sidebar"
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy-blue text-white shadow-lg flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:z-40 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* User Profile Section */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-peach rounded-full flex items-center justify-center text-navy-blue font-bold">
+              {user?.email?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user?.email || 'User'}</p>
+              <p className="text-xs text-gray-300 truncate">Member</p>
+            </div>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Stats Summary */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
+        {/* Navigation Items */}
+        <nav className="flex-1 py-4">
+          <ul className="space-y-1 px-3">
+            <li>
+              <Link
+                href="/dashboard"
+                className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-peach text-navy-blue"
+              >
+                <span className="text-lg">📊</span>
+                <span>Dashboard</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/todo"
+                className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+              >
+                <span className="text-lg">✅</span>
+                <span>Tasks</span>
+              </Link>
+            </li>
+            <li>
+              <button
+                onClick={() => {
+                  // Open the chat panel by triggering the floating chat button
+                  const chatButton = document.querySelector('.floating-chat-button');
+                  if (chatButton) {
+                    chatButton.click();
+                  }
+                }}
+                className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white w-full text-left"
+              >
+                <span className="text-lg">💬</span>
+                <span>Chat</span>
+              </button>
+            </li>
+            {/* Removed Settings link as requested */}
+          </ul>
+        </nav>
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+          >
+            <span className="text-lg">🚪</span>
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile overlay */}
+      <div className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden hidden" id="mobile-menu-overlay"></div>
+
+      {/* Main Content */}
+      <main className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'ml-0 lg:ml-64'}`}>
+        {/* Top Header */}
+        <header className="bg-white dark:bg-navy-blue shadow-sm border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-navy-blue dark:text-white">Todo Dashboard</h1>
+            <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end">
+              <span className="text-navy-blue dark:text-white font-medium text-sm sm:text-base">Welcome, {user?.email}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <div className="flex-1 p-4 sm:p-6">
+          {/* Stats Summary */}
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
+            <div className="bg-white dark:bg-navy-blue overflow-hidden shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-transform duration-200 hover:scale-[1.02]">
               <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex-shrink-0 bg-navy-blue rounded-lg p-2 sm:p-3">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-3 sm:ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Tasks</dt>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Tasks</dt>
                     <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.total}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-navy-blue dark:text-white">{stats.total}</div>
                     </dd>
                   </dl>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
+            <div className="bg-white dark:bg-navy-blue overflow-hidden shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-transform duration-200 hover:scale-[1.02]">
               <div className="flex items-center">
-                <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex-shrink-0 bg-green-500 rounded-lg p-2 sm:p-3">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-3 sm:ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Completed</dt>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Completed</dt>
                     <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.completed}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-navy-blue dark:text-white">{stats.completed}</div>
                     </dd>
                   </dl>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
+            <div className="bg-white dark:bg-navy-blue overflow-hidden shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-transform duration-200 hover:scale-[1.02]">
               <div className="flex items-center">
-                <div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex-shrink-0 bg-orange rounded-lg p-2 sm:p-3">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-3 sm:ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Incomplete</dt>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Incomplete</dt>
                     <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.incomplete}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-navy-blue dark:text-white">{stats.incomplete}</div>
                     </dd>
                   </dl>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
+            <div className="bg-white dark:bg-navy-blue overflow-hidden shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-transform duration-200 hover:scale-[1.02]">
               <div className="flex items-center">
-                <div className="flex-shrink-0 bg-purple-500 rounded-md p-3">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex-shrink-0 bg-purple-500 rounded-lg p-2 sm:p-3">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-3 sm:ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">High Priority</dt>
+                    <dt className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">High Priority</dt>
                     <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.by_priority.high}</div>
+                      <div className="text-xl sm:text-3xl font-bold text-navy-blue dark:text-white">{stats.by_priority.high}</div>
                     </dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Controls */}
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              {showCreateForm ? 'Cancel' : 'Add Task'}
-            </button>
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 gap-6">
+            {/* Todo Input Section - Full width on mobile, side by side on larger screens */}
+            <div className="bg-white dark:bg-navy-blue shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-navy-blue dark:text-white mb-4">Add New Task</h2>
+              <TodoInput />
+            </div>
 
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="all">All Tasks</option>
-              <option value="incomplete">Incomplete</option>
-              <option value="complete">Complete</option>
-            </select>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Filters Section */}
+              <div className="lg:col-span-1">
+                <div className="bg-white dark:bg-navy-blue shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-medium text-navy-blue dark:text-white mb-4">Filters</h3>
+                  <TodoFilters />
+                </div>
+              </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="created_at">Created At</option>
-              <option value="updated_at">Updated At</option>
-              <option value="title">Title</option>
-              <option value="priority">Priority</option>
-            </select>
-
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Task Creation Form */}
-        {showCreateForm && (
-          <div className="mb-6">
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Add New Task</h2>
-
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.target);
-                  createTask({
-                    title: formData.get('title'),
-                    description: formData.get('description'),
-                    priority: formData.get('priority')
-                  });
-                }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                        Task Title *
-                      </label>
-                      <input
-                        id="title"
-                        name="title"
-                        type="text"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="What needs to be done?"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
-                        Priority
-                      </label>
-                      <select
-                        id="priority"
-                        name="priority"
-                        defaultValue="medium"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
+              {/* Task List Section */}
+              <div className="lg:col-span-2">
+                <div className="bg-white dark:bg-navy-blue shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 className="text-lg sm:text-xl font-semibold text-navy-blue dark:text-white">Your Tasks</h2>
+                    <div className="w-full sm:w-auto">
+                      <ProgressBar />
                     </div>
                   </div>
 
-                  <div className="mb-4">
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Add details..."
-                      rows="2"
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Add Task
-                    </button>
-                  </div>
-                </form>
+                  <SortableTodoList />
+                </div>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Task List */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          {paginatedTasks.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating a new task.</p>
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Add Task
-                </button>
-              </div>
-            </div>
-          ) : (
-            <ul className="divide-y divide-gray-200">
-              {paginatedTasks.map((task) => (
-                <li key={task.id} className="hover:bg-gray-50">
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={task.status === 'complete'}
-                          onChange={() => toggleTaskCompletion(task.id)}
-                          className="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
-                        />
-                        <div className="ml-3 flex items-center">
-                          <p className={`text-sm font-medium ${
-                            task.status === 'complete'
-                              ? 'text-gray-500 line-through'
-                              : 'text-gray-900'
-                          }`}>
-                            {task.text}
-                          </p>
-                          <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityClass(task.priority)}`}>
-                            {task.priority}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">
-                          Created: {formatDate(task.createdAt)}
-                        </span>
-                        <button
-                          onClick={() => {
-                            // Set up edit form with task data
-                            document.getElementById(`edit-form-${task.id}`).classList.remove('hidden');
-                            document.getElementById(`task-display-${task.id}`).classList.add('hidden');
-                          }}
-                          className="inline-flex items-center px-2.5 py-0.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          className="inline-flex items-center px-2.5 py-0.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                    {task.description && (
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-600">
-                            {task.description}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Edit Form - Initially hidden */}
-                    <div id={`edit-form-${task.id}`} className="hidden mt-4 p-4 bg-gray-50 rounded-md">
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.target);
-                        updateTask(task.id, {
-                          title: formData.get('title'),
-                          description: formData.get('description'),
-                          priority: formData.get('priority')
-                        });
-                        // Hide edit form and show display
-                        document.getElementById(`edit-form-${task.id}`).classList.add('hidden');
-                        document.getElementById(`task-display-${task.id}`).classList.remove('hidden');
-                      }}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <label htmlFor={`edit-title-${task.id}`} className="block text-sm font-medium text-gray-700 mb-1">
-                              Task Title
-                            </label>
-                            <input
-                              id={`edit-title-${task.id}`}
-                              name="title"
-                              type="text"
-                              defaultValue={task.text}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label htmlFor={`edit-priority-${task.id}`} className="block text-sm font-medium text-gray-700 mb-1">
-                              Priority
-                            </label>
-                            <select
-                              id={`edit-priority-${task.id}`}
-                              name="priority"
-                              defaultValue={task.priority}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="low">Low</option>
-                              <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <label htmlFor={`edit-description-${task.id}`} className="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                          </label>
-                          <textarea
-                            id={`edit-description-${task.id}`}
-                            name="description"
-                            defaultValue={task.description || ''}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            rows="2"
-                          />
-                        </div>
-
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              document.getElementById(`edit-form-${task.id}`).classList.add('hidden');
-                              document.getElementById(`task-display-${task.id}`).classList.remove('hidden');
-                            }}
-                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-
-                    {/* Task Display Container - Initially shown */}
-                    <div id={`task-display-${task.id}`} className="hidden">
-                      {/* This div exists to toggle visibility */}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
-
-        {/* Pagination */}
-        {sortedTasks.length > limit && (
-          <div className="mt-6 flex justify-center">
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button
-                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                disabled={currentPage === 0}
-                className={`relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                  currentPage === 0
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Previous
-              </button>
-
-              <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                {currentPage + 1}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={(currentPage + 1) * limit >= sortedTasks.length}
-                className={`relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                  (currentPage + 1) * limit >= sortedTasks.length
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        )}
       </main>
-    </Layout>
+
+      {/* Floating Chat Button */}
+      <FloatingChatButton
+        userId={user?.id}
+        userToken={typeof window !== 'undefined' ? localStorage.getItem('access_token') : null}
+      />
+    </div>
   );
 };
 

@@ -3,6 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import apiClient from '../lib/apiClient';
+import { useTodo } from '../contexts/TodoContext';
 
 const ChatPage = () => {
   const [messages, setMessages] = useState([]);
@@ -13,6 +15,7 @@ const ChatPage = () => {
   const [userId, setUserId] = useState(null);
   const messagesEndRef = useRef(null);
   const router = useRouter();
+  const { refreshTodos } = useTodo(); // Get the refreshTodos function from TodoContext
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -55,23 +58,15 @@ const ChatPage = () => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/${userId}/chat`, {
+      // Use the API client to make the chat request
+      // The backend mounts the API router at /api, so the full path is /api/{userId}/chat
+      const data = await apiClient.request(`/api/${userId}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: JSON.stringify({
           conversation_id: conversationId,
           message: inputValue
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
 
       // Update conversation ID if it was created
       if (data.conversation_id && !conversationId) {
@@ -88,9 +83,22 @@ const ChatPage = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Refresh todos to reflect any changes made through the chat
+      console.log('About to refresh todos after chat operation...');
+      console.log('Data received from backend:', data); // Debug log
+      setTimeout(() => {
+        console.log('Calling refreshTodos...');
+        refreshTodos().then(() => {
+          console.log('refreshTodos completed');
+        }).catch(error => {
+          console.error('Error in refreshTodos:', error);
+        });
+      }, 500); // Small delay to ensure the backend has processed the request
     } catch (err) {
       setError(err.message);
       console.error('Chat error:', err);
+      console.log('Error occurred during chat processing, refreshTodos may not execute');
 
       // Add error message to UI
       const errorMessage = {
@@ -119,7 +127,7 @@ const ChatPage = () => {
   };
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <Head>
         <title>AI Todo Chat - Modern Todo App</title>
         <meta name="description" content="Chat with your AI productivity assistant" />
@@ -127,28 +135,7 @@ const ChatPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-white dark:bg-navy-blue text-navy-blue dark:text-white transition-colors duration-200 flex flex-col">
-        {/* Navbar */}
-        <nav className="bg-navy-blue text-white shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Link href="/dashboard" className="text-2xl font-bold text-white font-semibold">
-                  Modern Todo App
-                </Link>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/dashboard"
-                  className="bg-peach text-navy-blue px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg"
-                >
-                  Dashboard
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
+      <div className="flex-1 flex flex-col bg-white dark:bg-navy-blue text-navy-blue dark:text-white transition-colors duration-200">
 
         {/* Chat Container */}
         <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-6">
@@ -266,7 +253,7 @@ const ChatPage = () => {
           </form>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

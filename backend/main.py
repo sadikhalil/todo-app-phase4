@@ -8,7 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-from app.api.main import router as api_router
+from app.api import router as api_router
+from app.auth import router as auth_router
+from app.api.tasks import router as tasks_router
+from app.api.mcp_endpoints import mcp_router
 from app.db.database import create_db_and_tables
 
 # Create main app
@@ -28,10 +31,15 @@ app.add_middleware(
     allow_origin_regex=r"https?://localhost(:[0-9]+)?|https?://127\.0\.0\.1(:[0-9]+)?",
 )
 
-from app.auth import router as auth_router
+# Include the API routes (includes chat routes)
+app.include_router(api_router, prefix="/api", tags=["chat"])
 
-# Include the API routes
-app.include_router(api_router, prefix="/api", tags=["api"])
+# Include tasks routes directly (so the full path will be /tasks)
+from app.api.tasks import router as tasks_router
+app.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
+
+# Include MCP routes for task operations via tools
+app.include_router(mcp_router, prefix="", tags=["mcp"])
 
 # Include auth routes at the app level (not under /api prefix)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -52,7 +60,7 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "app.main:app",
+        "main:app",
         host="0.0.0.0",
         port=int(os.getenv("PORT", 8000)),
         reload=True
