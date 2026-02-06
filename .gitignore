@@ -89,9 +89,8 @@ backend/venv/
 frontend/node_modules/
 
 # Backend development artifacts
-backend/agents/
-backend/api/
-backend/mcp/
+
+
 backend/models/
 backend/requirements_new.txt
 
