@@ -64,19 +64,15 @@ hackathon-todo/
    Create a `.env` file in the backend directory:
    ```env
    # Database Configuration
-   DATABASE_URL='sqlite:///./todo_app.db'
+   DATABASE_URL
 
    # JWT Configuration
    SECRET_KEY=your-super-secret-and-long-random-string-here-change-this-in-production
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=1440
+   
+   
 
    # Application Configuration
-   DEBUG=True
-   APP_NAME=Todo App API
-   VERSION=1.0.0
-   HOST=0.0.0.0
-   PORT=8000
+
    ```
 
 4. **Start the main server:**
@@ -135,19 +131,14 @@ The chat endpoint supports natural language commands:
 ### Environment Variables for Production
 ```env
 # Database Configuration
-DATABASE_URL='postgresql://username:password@localhost/todo_db'
+DATABASE_URL
 
 # JWT Configuration
 SECRET_KEY=your-very-long-secret-key-change-this-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
 
 # Application Configuration
-DEBUG=False
-APP_NAME=Todo App API
-VERSION=1.0.0
-HOST=0.0.0.0
-PORT=8000
+
 ```
 
 ### Docker Deployment
